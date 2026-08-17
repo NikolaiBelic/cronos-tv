@@ -1,0 +1,4 @@
+<resources>
+
+    <style name="Theme.CronosTV" parent="Theme.AppCompat.DayNight.NoActionBar" />
+</resources>
