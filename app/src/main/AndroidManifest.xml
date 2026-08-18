@@ -11,6 +11,14 @@
         android:name="android.software.leanback"
         android:required="false" />
 
+    <queries>
+        <package android:name="org.acestream.node" />
+
+        <intent>
+            <action android:name="org.acestream.engine.service.v0.bind_aidl" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="true"
         android:banner="@mipmap/ic_launcher"
