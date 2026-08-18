@@ -104,91 +104,92 @@ class PlayerActivity : AppCompatActivity() {
                 return@launch
             }
 
-            try {
+            val clientSessionId =
+                nextClientSessionId.getAndIncrement()
 
-                val clientSessionId =
-                    nextClientSessionId.getAndIncrement()
+            val sessionUrl =
+                "http://127.0.0.1:6878/ace/getstream" +
+                        "?format=json" +
+                        "&sid=acestream-player" +
+                        "&_idx=0" +
+                        "&stream_id=0" +
+                        "&content_id=$contentId" +
+                        "&client_session_id=$clientSessionId" +
+                        "&use_timeshift=1" +
+                        "&manifest_p2p_wait_timeout=10" +
+                        "&proxy_vast_response=1" +
+                        "&force_ads=1" +
+                        "&gdpr_consent=1" +
+                        "&stop_prev_read_thread=1"
 
-                val productKey =
-                    "40e9ba380752b7b4feb7c6616e0eb3949e6d1412"
+            Log.d(
+                "CronosTV/Player",
+                "🎬 Solicitando sesión AceStream: $sessionUrl"
+            )
 
-                Log.d(
-                    "CronosTV/Player",
-                    "Iniciando sesión AceStream productKey=$productKey"
-                )
-
-                val sessionUrl =
-                    "http://127.0.0.1:6878/ace/getstream" +
-                            "?format=json" +
-                            "&sid=cronos" +
-                            "&_idx=0" +
-                            "&stream_id=0" +
-                            "&id=$contentId" +
-                            "&client_session_id=$clientSessionId" +
-                            "&use_timeshift=0" +
-                            "&manifest_p2p_wait_timeout=10" +
-                            "&proxy_vast_response=1" +
-                            "&force_ads=1" +
-                            "&product_key=$productKey" +
-                            "&gdpr_consent=1"
-
-                Log.d(
-                    "CronosTV/Player",
-                    "sessionUrl=$sessionUrl"
-                )
-
-                val session =
+            val session =
+                try {
                     obtenerSesionAceStream(sessionUrl)
+                } catch (e: Exception) {
 
-                if (session == null) {
-                    withContext(Dispatchers.Main) {
-                        Toast.makeText(
-                            this@PlayerActivity,
-                            "El Engine rechazó la sesión",
-                            Toast.LENGTH_LONG
-                        ).show()
-                    }
-                    return@launch
+                    Log.e(
+                        "CronosTV/Player",
+                        "❌ Error obteniendo sesión AceStream",
+                        e
+                    )
+
+                    null
                 }
 
-                playbackSessionId =
-                    session.playbackSessionId
-
-                commandUrl =
-                    session.commandUrl
-
-                statUrl =
-                    session.statUrl
-
-                Log.d(
-                    "CronosTV/Player",
-                    "✅ Sesión AceStream iniciada"
-                )
-
-                Log.d(
-                    "CronosTV/Player",
-                    "playbackUrl=${session.playbackUrl}"
-                )
-
-                withContext(Dispatchers.Main) {
-                    reproducir(session.playbackUrl)
-                }
-
-            } catch (e: Throwable) {
-
-                Log.e(
-                    "CronosTV/Player",
-                    "❌ Error iniciando AceStream",
-                    e
-                )
+            if (session == null) {
 
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
                         this@PlayerActivity,
-                        "Error iniciando AceStream",
+                        "No se pudo iniciar la sesión AceStream",
                         Toast.LENGTH_LONG
                     ).show()
                 }
+
+                return@launch
+            }
+
+            playbackSessionId =
+                session.playbackSessionId
+
+            commandUrl =
+                session.commandUrl
+
+            statUrl =
+                session.statUrl
+
+            Log.d(
+                "CronosTV/Player",
+                "✅ Sesión AceStream obtenida"
+            )
+
+            Log.d(
+                "CronosTV/Player",
+                "playback_url=${session.playbackUrl}"
+            )
+
+            Log.d(
+                "CronosTV/Player",
+                "playback_session_id=${session.playbackSessionId}"
+            )
+
+            Log.d(
+                "CronosTV/Player",
+                "command_url=${session.commandUrl}"
+            )
+
+            Log.d(
+                "CronosTV/Player",
+                "▶️ Reproduciendo directamente: ${session.playbackUrl}"
+            )
+
+            withContext(Dispatchers.Main) {
+                reproducir(session.playbackUrl)
             }
         }
     }

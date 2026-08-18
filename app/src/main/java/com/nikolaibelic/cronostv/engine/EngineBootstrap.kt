@@ -18,6 +18,7 @@ object EngineBootstrap {
 
         if (marker.exists()) {
             patchAppBridge(context)
+            patchMainPy(context)
             Log.d(TAG, "Runtime del Engine ya desempaquetado")
             return true
         }
@@ -45,8 +46,9 @@ object EngineBootstrap {
                 )
             }
 
-            // AHORA app_bridge.py ya existe
+            // AHORA app_bridge.py y main.py ya existen
             patchAppBridge(context)
+            patchMainPy(context)
 
             val pythonDir = File(filesDir, "python")
             val mainPy = File(filesDir, "main.py")
@@ -126,6 +128,140 @@ object EngineBootstrap {
         }
     }
 
+    private fun patchMainPy(context: Context) {
+        val mainPy = File(context.filesDir, "main.py")
+
+        if (!mainPy.exists()) {
+            Log.w(TAG, "No existe main.py para instrumentar")
+            return
+        }
+
+        var text = mainPy.readText()
+
+        // Evita parchearlo dos veces.
+        if (text.contains("# CRONOS_HTTP_INSTRUMENTATION_V2")) {
+            Log.d(TAG, "main.py ya instrumentado V2")
+            return
+        }
+
+        val marker =
+            "try:\n" +
+                    "    log('got rpc host: {}'.format(GOT_RCP_HOST))\n" +
+                    "    from acestreamengine import Core"
+
+        if (!text.contains(marker)) {
+            Log.e(TAG, "No se encontró el marcador de importación de Core en main.py")
+            return
+        }
+
+        val instrumentation = """
+|# CRONOS_HTTP_INSTRUMENTATION_V2
+|try:
+|    import urllib.request
+|
+|    _cronos_original_open = urllib.request.OpenerDirector.open
+|
+|    class _CronosLoggedResponse:
+|        def __init__(self, response, url):
+|            self._response = response
+|            self._url = url
+|
+|        def read(self, *args, **kwargs):
+|            data = self._response.read(*args, **kwargs)
+|
+|            try:
+|                preview = data[:16384]
+|
+|                if isinstance(preview, bytes):
+|                    preview = preview.decode("utf-8", errors="replace")
+|
+|                log("CRONOS_HTTP_BODY url={} body={!r}".format(
+|                    self._url,
+|                    preview
+|                ))
+|            except Exception as e:
+|                log("CRONOS_HTTP_BODY_ERROR {}".format(repr(e)))
+|
+|            return data
+|
+|        def __getattr__(self, name):
+|            return getattr(self._response, name)
+|
+|        def __enter__(self):
+|            self._response.__enter__()
+|            return self
+|
+|        def __exit__(self, exc_type, exc_value, tb):
+|            return self._response.__exit__(
+|                exc_type,
+|                exc_value,
+|                tb
+|            )
+|
+|    def _cronos_open(self, fullurl, *args, **kwargs):
+|        try:
+|            if isinstance(fullurl, urllib.request.Request):
+|                url = fullurl.full_url
+|                method = fullurl.get_method()
+|            else:
+|                url = str(fullurl)
+|                method = "GET"
+|
+|            if "127.0.0.1" not in url and "localhost" not in url:
+|                log("CRONOS_HTTP_REQUEST method={} url={}".format(
+|                    method,
+|                    url
+|                ))
+|
+|            response = _cronos_original_open(
+|                self,
+|                fullurl,
+|                *args,
+|                **kwargs
+|            )
+|
+|            if "127.0.0.1" not in url and "localhost" not in url:
+|                log("CRONOS_HTTP_RESPONSE status={} url={}".format(
+|                    getattr(response, "status", None),
+|                    getattr(response, "url", url)
+|                ))
+|
+|            if "/get?_q=" in url and "torrentstream" in url:
+|                log("CRONOS_HTTP_BODY_CAPTURE enabled url={}".format(url))
+|                return _CronosLoggedResponse(response, url)
+|
+|            return response
+|
+|        except Exception as e:
+|            try:
+|                log("CRONOS_HTTP_ERROR url={} error={}".format(
+|                    locals().get("url", "?"),
+|                    repr(e)
+|                ))
+|            except:
+|                pass
+|            raise
+|
+|    urllib.request.OpenerDirector.open = _cronos_open
+|    log("CRONOS_HTTP instrumentation V2 installed")
+|
+|except Exception:
+|    log("CRONOS_HTTP instrumentation V2 failed: {}".format(
+|        traceback.format_exc()
+|    ))
+|
+""".trimMargin()
+
+        text = text.replace(
+            marker,
+            instrumentation + "\n" + marker
+        )
+
+        mainPy.writeText(text)
+
+        Log.d(TAG, "main.py instrumentado V2 para registrar HTTP body")
+    }
+
     private fun patchAppBridge(context: Context) {
         val bridge = File(context.filesDir, "app_bridge.py")
 
@@ -178,7 +314,7 @@ object EngineBootstrap {
             }
         }
 
-        // Versiones de la app: añadir aparte para no duplicar lo anterior
+        // Versiones de la app
         if (!text.contains("""elif method == "getAppVersionCode":""")) {
 
             val marker =
@@ -222,7 +358,7 @@ object EngineBootstrap {
             }
         }
 
-// ABI del dispositivo/Engine
+        // ABI del dispositivo/Engine
         if (!text.contains("""elif method == "getDeviceABI":""")) {
 
             val finalElse =
@@ -243,7 +379,7 @@ object EngineBootstrap {
             }
         }
 
-// Locale
+        // Locale
         if (!text.contains("""elif method == "getLocale":""")) {
 
             val finalElse =
@@ -265,7 +401,7 @@ object EngineBootstrap {
         }
 
         // Detectar si estamos en Android TV.
-// Ahora estamos probando en móvil, así que usamos false.
+        // Ahora estamos probando en móvil, así que usamos false.
         if (!text.contains("""elif method == "isAndroidTv":""")) {
 
             val finalElse =
@@ -288,7 +424,7 @@ object EngineBootstrap {
             }
         }
 
-// Tamaño de bloque del almacenamiento
+        // Tamaño de bloque del almacenamiento
         if (!text.contains("""elif method == "getBlockSize":""")) {
 
             val finalElse =
