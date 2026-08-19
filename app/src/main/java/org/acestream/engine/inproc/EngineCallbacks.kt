@@ -58,7 +58,7 @@ object EngineCallbacks {
                         put("deviceId", env.deviceId)
 
                         put("license", org.json.JSONObject.NULL)
-                        put("attestationMode", org.json.JSONObject.NULL)
+                        put("attestationMode", "NONE")
                         put("playIntegritySupported", false)
                         put("lastError", org.json.JSONObject.NULL)
                     }.toString()
