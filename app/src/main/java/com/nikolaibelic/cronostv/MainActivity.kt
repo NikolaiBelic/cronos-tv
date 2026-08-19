@@ -1,4 +1,4 @@
-package com.nikolaibelic.cronostv
+﻿package com.nikolaibelic.cronostv
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -23,10 +23,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // External Engine desactivado en rama mod-detected.
-        // Esta rama prueba exclusivamente el Engine 3.2.19.7 INPROC.
-        // com.nikolaibelic.cronostv.engine.AceStreamExternalEngine
-        //     .bind(applicationContext)
 
         // PRUEBA NUEVO ENGINE 3.2.19.7 INPROC
         CoroutineScope(Dispatchers.IO).launch {
@@ -224,19 +220,19 @@ class MainActivity : ComponentActivity() {
     private fun cargarLista(url: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                android.util.Log.d("CronosTV", "📡 Descargando lista desde: $url")
+                android.util.Log.d("CronosTV", "ðŸ“¡ Descargando lista desde: $url")
                 val contenido = URL(url).readText()
-                android.util.Log.d("CronosTV", "✅ Lista descargada: ${contenido.length} caracteres")
+                android.util.Log.d("CronosTV", "âœ… Lista descargada: ${contenido.length} caracteres")
                 val canalesParseados = M3UParser.parsear(contenido)
-                android.util.Log.d("CronosTV", "📺 Canales parseados: ${canalesParseados.size}")
+                android.util.Log.d("CronosTV", "ðŸ“º Canales parseados: ${canalesParseados.size}")
                 withContext(Dispatchers.Main) {
                     canales.clear()
                     canales.addAll(canalesParseados)
                     adapter.notifyDataSetChanged()
-                    android.util.Log.d("CronosTV", "✅ Adapter notificado, canales en lista: ${canales.size}")
+                    android.util.Log.d("CronosTV", "âœ… Adapter notificado, canales en lista: ${canales.size}")
                 }
             } catch (e: Exception) {
-                android.util.Log.e("CronosTV", "❌ Error al cargar la lista: ${e.message}")
+                android.util.Log.e("CronosTV", "âŒ Error al cargar la lista: ${e.message}")
                 e.printStackTrace()
             }
         }

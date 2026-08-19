@@ -115,7 +115,6 @@ class PlayerActivity : AppCompatActivity() {
                         "&stream_id=0" +
                         "&content_id=$contentId" +
                         "&client_session_id=$clientSessionId" +
-                        "&l=CRONOS_DIAGNOSTIC_TEST" +
                         "&use_timeshift=1" +
                         "&manifest_p2p_wait_timeout=10" +
                         "&proxy_vast_response=1" +
