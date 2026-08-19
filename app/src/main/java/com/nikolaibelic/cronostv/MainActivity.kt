@@ -23,8 +23,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        com.nikolaibelic.cronostv.engine.AceStreamExternalEngine
-            .bind(applicationContext)
+        // External Engine desactivado en rama mod-detected.
+        // Esta rama prueba exclusivamente el Engine 3.2.19.7 INPROC.
+        // com.nikolaibelic.cronostv.engine.AceStreamExternalEngine
+        //     .bind(applicationContext)
 
         // PRUEBA NUEVO ENGINE 3.2.19.7 INPROC
         CoroutineScope(Dispatchers.IO).launch {
